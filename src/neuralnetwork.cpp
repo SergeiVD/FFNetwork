@@ -1,168 +1,80 @@
 #include "../include/neuralnetwork.h"
 #include "../include/activation_fn.h"
-#include <vector>
 
-NeuralNetwork::NeuralNetwork(std::vector<int> layer_sizes, std::vector<activate_fn> functions) :
-	layer_sizes_{layer_sizes},
-	functions_{functions}
+NeuralNetwork::NeuralNetwork(const std::vector<int>& layerSizes, const std::vector<activate_fn>& activationFunctions)
 {
-	for (int i = 1; i < layer_sizes.size(); ++i)
-	{
-		layers_.push_back(Layer(layer_sizes[i-1], layer_sizes[i], functions_[i-1]));
-	}
-	output_layers_.resize(layers_.size());
+    layers_.reserve(layerSizes.size() - 1);
+    outputLayers_.resize(layerSizes.size() - 1);
+
+    for (int i = 1; i < layerSizes.size(); ++i) {
+        layers_.emplace_back(layerSizes[i - 1], layerSizes[i], activationFunctions[i - 1]);
+    }
 }
 
-std::vector<double> NeuralNetwork::feed_forward(double* input)
+std::vector<double> NeuralNetwork::feedForward(const std::vector<double>& input)
 {
-	std::vector<double> output(input, input + layer_sizes_[0]);
+    std::vector<double> output = input;
 
-	for (size_t i = 0; i < layers_.size(); ++i)
-	{
-		output = layers_.at(i).activate(output);
-		output_layers_.at(i) = output;
-	}
+    for (size_t i = 0; i < layers_.size(); ++i) {
+        output = layers_[i].activate(output);
+        outputLayers_[i] = output;
+    }
 
-	return output;
+    return output;
 }
 
-// std::vector<double> NeuralNetwork::feed_forward(double* input)
-// {
-// 	std::vector<double> output(input, input + layer_sizes_[0]);
-
-// 	for (auto& layer : layers_)
-// 	{
-// 		output = layer.activate(output);
-// 	}
-// 	return output;
-// }
-
-
-std::vector<double> NeuralNetwork::feed_forward(const std::vector<double>& input)
+void NeuralNetwork::setWeights(const int& layerNum, const int& neuronNum, const int& weightNum, const double& weight)
 {
-	std::vector<double> output(input.data(), input.data() + layer_sizes_[0]);
-	
-	for (size_t i = 0; i < layers_.size(); ++i)
-	{
-		output = layers_.at(i).activate(output);
-		output_layers_.at(i) = output;
-	}
+    layers_[layerNum].setWeights(neuronNum, weightNum, weight);
+}
 
-	return output;
+void NeuralNetwork::setBiases(const int& layerNum, const int& neuronNum, const double& bias)
+{
+    layers_[layerNum].setBias(neuronNum, bias);
 }
 
 
-// std::vector<double> NeuralNetwork::feed_forward(const std::vector<double>& input)
-// {
-// 	std::vector<double> output(input.data(), input.data() + layer_sizes_[0]);
-	
-// 	for (auto& layer : layers_)
-// 	{
-// 		output = layer.activate(output);
-// 	}
-	
-// 	return output;
-// }
-
-void NeuralNetwork::set_weights(const int& num_layer, const int& num_neuron, const int& num_weight, const double& weight)
+// Метод сохранения структуры сети и ссылок на файлы с весами в файл JSON
+void NeuralNetwork::saveToFile(const std::string& filename) const
 {
-	layers_[num_layer].set_weights(num_neuron, num_weight, weight);
+    nlohmann::json jsonNetwork;
+
+    // Сохранение структуры сети
+    jsonNetwork["layer_sizes"] = layer_sizes_;
+
+    // Сохранение ссылок на файлы с весами
+    std::vector<std::string> weightFiles;
+    for (int i = 0; i < layers_.size(); ++i)
+    {
+        std::string weightFilename = "weights_layer_" + std::to_string(i) + ".txt";
+        weightFiles.push_back(weightFilename);
+        layers_[i].saveWeightsToFile(weightFilename);
+    }
+    jsonNetwork["weight_files"] = weightFiles;
+
+    // Сохранение в файл
+    std::ofstream file(filename);
+    file << jsonNetwork;
+    file.close();
 }
 
-void NeuralNetwork::set_biases(const int& num_layer, const int& num_neuron, const double& bias)
+// Метод загрузки структуры сети и ссылок на файлы с весами из файла JSON
+void NeuralNetwork::loadFromFile(const std::string& filename)
 {
-	layers_[num_layer].set_bias(num_neuron, bias);
+    nlohmann::json jsonNetwork;
+
+    // Чтение файла
+    std::ifstream file(filename);
+    file >> jsonNetwork;
+    file.close();
+
+    // Загрузка структуры сети
+    layer_sizes_ = jsonNetwork["layer_sizes"].get<std::vector<int>>();
+
+    // Загрузка ссылок на файлы с весами
+    std::vector<std::string> weightFiles = jsonNetwork["weight_files"].get<std::vector<std::string>>();
+    for (int i = 0; i < weightFiles.size(); ++i)
+    {
+        layers_[i].loadWeightsFromFile(weightFiles[i]);
+    }
 }
-
-std::vector<std::vector<std::vector<double>>> NeuralNetwork::get_weights()
-{
-	std::vector<std::vector<std::vector<double>>> weights;
-	for(auto& layer : layers_)
-	{
-		weights.push_back(layer.get_weights());
-	}
-	return weights;
-}
-
-std::vector<std::vector<double>> NeuralNetwork::get_biases()
-{
-	std::vector<std::vector<double>> biases;
-	for(auto& layer : layers_)
-	{
-		biases.push_back(layer.get_biases());
-	}
-	return biases;
-}
-
-std::vector<double> NeuralNetwork::layer_derivative(const int& num_layer)
-{
-
-	switch (layers_.at(num_layer).get_name_activate_fn())
-	{
-	case activate_fn::sigmoid:
-	{
-		std::cout<<"sigmoid"<<std::endl;
-		break;
-	}
-	case activate_fn::relu:
-	{
-		std::cout<<"relu"<<std::endl;
-		break;
-	}
-	case activate_fn::tanh:
-	{
-		std::cout<<"tanh"<<std::endl;
-		break;
-	}
-
-default:
-		break;
-	}
-	
-	return 	layers_.at(num_layer).derive_activation(output_layers_.at(num_layer));
-
-	// std::vector<double> activ_derivative(layers_.at(num_layer).get_output().size());
-	// switch (functions_.at(num_layer))
-	// {
-	// case activate_fn::sigmoid:
-	// {
-	// 	for(int i = 0; layers_.at(num_layer).get_output().size(); ++i)
-	// 	{
-	// 		activ_derivative[i] = acitvation_fn::sigmoid_derivative(layers_.at(num_layer).get_output().at(i));
-	// 	}
-	// 	return activ_derivative;
-	// 	break;
-	// }
-
-	// case activate_fn::relu:
-	// {
-	// 	for(int i = 0; layers_.at(num_layer).get_output().size(); ++i)
-	// 	{
-	// 		activ_derivative[i] = acitvation_fn::relu_derivative(layers_.at(num_layer).get_output().at(i));
-	// 	}
-	// 	return activ_derivative;
-	// 	break;
-	// }
-
-	// case activate_fn::tanh:
-	// {
-	// 	for(int i = 0; layers_.at(num_layer).get_output().size(); ++i)
-	// 	{
-	// 		activ_derivative[i] = acitvation_fn::tanh_derivative(layers_.at(num_layer).get_output().at(i));
-	// 	}
-	// 	return activ_derivative;
-	// 	break;
-	// }
-
-
-          // default:
-	// 	break;
-	// }
-
-	
-
-}
-
-
-
-

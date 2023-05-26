@@ -4,185 +4,171 @@
 #include <cmath>
 #include <random>
 
-Layer::Layer(int input_size, int output_size, activate_fn activ_fn) :
-        input_size_{input_size},
-        output_size_{output_size},
-        weights_(output_size, std::vector<double>(input_size)),
-        biases_(output_size),
-		activ_fn_{activ_fn}
+Layer::Layer(int inputSize, int outputSize, activate_fn activationFunction)
+    : inputSize_(inputSize), outputSize_(outputSize), activationFunction_(activationFunction)
 {
-	// Инициализация весов и смещений
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<> dis(-1.0, 1.0);
-        
-	// for (int i = 0; i < input_size_; i++)
-	// {
-	// 	for (int j = 0; j < output_size_; j++)
-	// 	{
-	// 		weights_[i][j] = dis(gen); // Инициализация случайными значениями от -1 до 1
-	// 	}
-	// }
+    weights_.resize(outputSize_, std::vector<double>(inputSize_));
+    biases_.resize(outputSize_);
 
-	for (int i = 0; i < output_size_; i++)
-	{
-		for (int j = 0; j < input_size_; j++)
-		{
-			weights_[i][j] = dis(gen); // Инициализация случайными значениями от -1 до 1
-		}
-	}
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(-1.0, 1.0);
 
+    for (int i = 0; i < outputSize_; i++) {
+        for (int j = 0; j < inputSize_; j++) {
+            weights_[i][j] = dis(gen); // Initialize weights with random values between -1 and 1
+        }
+    }
 
-	for (int i = 0; i < output_size_; i++)
-	{
-		biases_[i] = dis(gen); // Инициализация случайными значениями от -1 до 1
-	}
+    for (int i = 0; i < outputSize_; i++) {
+        biases_[i] = dis(gen); // Initialize biases with random values between -1 and 1
+    }
 }
 
-Layer::Layer(const Layer &layer) :
-	input_size_{layer.input_size_},
-	output_size_{layer.output_size_},
-	weights_(layer.weights_),
-	biases_(layer.biases_),
-	activ_fn_(layer.activ_fn_)
+Layer::Layer(const Layer& layer)
+    : inputSize_(layer.inputSize_), outputSize_(layer.outputSize_), weights_(layer.weights_), biases_(layer.biases_), activationFunction_(layer.activationFunction_)
 {
 }
 
-Layer::Layer(const Layer&& layer)noexcept :
-	input_size_(layer.input_size_),
-	output_size_(layer.output_size_),
-	weights_(std::move(layer.weights_)),
-	biases_(std::move(layer.biases_)),
-	activ_fn_(std::move(layer.activ_fn_))
-	
-{	
+Layer::Layer(Layer&& layer) noexcept
+    : inputSize_(layer.inputSize_), outputSize_(layer.outputSize_), weights_(std::move(layer.weights_)), biases_(std::move(layer.biases_)), activationFunction_(std::move(layer.activationFunction_))
+{
 }
 
 Layer& Layer::operator=(const Layer& layer)
 {
-	input_size_ = layer.input_size_;
-	output_size_ = layer.output_size_;
-	weights_ = layer.weights_;
-	biases_ = layer.biases_;
-	activ_fn_ = layer.activ_fn_;
+    inputSize_ = layer.inputSize_;
+    outputSize_ = layer.outputSize_;
+    weights_ = layer.weights_;
+    biases_ = layer.biases_;
+    activationFunction_ = layer.activationFunction_;
 
-	return *this;
+    return *this;
 }
 
-Layer& Layer::operator=(Layer&& layer)
+Layer& Layer::operator=(Layer&& layer) noexcept
 {
-	input_size_ = std::move(layer.input_size_);
-	output_size_ = std::move(layer.output_size_);
-	weights_ = std::move(layer.weights_);
-	biases_ = std::move(layer.biases_);
-	activ_fn_ = std::move(layer.activ_fn_);
+    inputSize_ = std::move(layer.inputSize_);
+    outputSize_ = std::move(layer.outputSize_);
+    weights_ = std::move(layer.weights_);
+    biases_ = std::move(layer.biases_);
+    activationFunction_ = std::move(layer.activationFunction_);
 
-	return *this;
-	
+    return *this;
 }
 
 std::vector<double> Layer::activate(const std::vector<double>& input)
 {
-	std::vector<double> output(output_size_);
-		
-	// Умножение входа на веса и добавление смещений
-	for (int j = 0; j < output_size_; j++)
-	{
-		double weighted_sum = 0.0;
-		for (int i = 0; i < input_size_; i++)
-		{
-			weighted_sum += input[i] * weights_[j][i];
-		}
-		
-		switch (activ_fn_)
-		{
-		case activate_fn::sigmoid: output[j] = acitvation_fn::sigmoid(weighted_sum + biases_[j]);
-			break;
-		case activate_fn::relu: output[j] = acitvation_fn::relu(weighted_sum + biases_[j]);
-			break;
-		case activate_fn::tanh: output[j] = acitvation_fn::tanh(weighted_sum + biases_[j]);
-			break;
-		}
+    std::vector<double> output(outputSize_);
 
-	}
-	return output;
+    for (int j = 0; j < outputSize_; j++) {
+        double weightedSum = 0.0;
+        for (int i = 0; i < inputSize_; i++) {
+            weightedSum += input[i] * weights_[j][i];
+        }
+
+        switch (activationFunction_) {
+        case activate_fn::sigmoid:
+            output[j] = activation_fn::sigmoid(weightedSum + biases_[j]);
+            break;
+        case activate_fn::relu:
+            output[j] = activation_fn::relu(weightedSum + biases_[j]);
+            break;
+        case activate_fn::tanh:
+            output[j] = activation_fn::tanh(weightedSum + biases_[j]);
+            break;
+        }
+    }
+
+    return output;
 }
 
-// void Layer::activate(const std::vector<double>& input)
-// {
-// 	input_ = input;
-// 	output_.resize(output_size_);
-// 	// Умножение входа на веса и добавление смещений
-// 	for (int j = 0; j < output_size_; j++)
-// 	{
-// 		double weighted_sum = 0.0;
-// 		for (int i = 0; i < input_size_; i++)
-// 		{
-// 			weighted_sum += input[i] * weights_[j][i];
-// 		}
-		
-// 		switch (activ_fn_)
-// 		{
-// 		case activate_fn::sigmoid: output_[j] = acitvation_fn::sigmoid(weighted_sum + biases_[j]);
-// 			break;
-// 		case activate_fn::relu: output_[j] = acitvation_fn::relu(weighted_sum + biases_[j]);
-// 			break;
-// 		case activate_fn::tanh: output_[j] = acitvation_fn::tanh(weighted_sum + biases_[j]);
-// 			break;
-// 		}
-// 	}
-// }
-
-void Layer::set_weights(const int& num_neuron, const int& num_weigth, const double& weigth)
+void Layer::setWeights(const int& neuronNum, const int& weightNum, const double& weight)
 {
-	weights_.at(num_neuron).at(num_weigth) = weigth;
+    weights_[neuronNum][weightNum] = weight;
 }
 
-void Layer::set_bias(const int& num_neuron, const double& bias)
+void Layer::setBias(const int& neuronNum, const double& bias)
 {
-	biases_.at(num_neuron) = bias;
+    biases_[neuronNum] = bias;
 }
 
-std::vector<double> Layer::derive_activation(const std::vector<double>& val)
+std::vector<double> Layer::deriveActivation(const std::vector<double>& val)
 {
-	std::vector<double> activ_derivative(val.size());
-	
-	switch (activ_fn_)
-	{
-	case activate_fn::sigmoid:
-	{
-		for(int i = 0; i < val.size(); ++i)
-		{
-			activ_derivative[i] = acitvation_fn::sigmoid_derivative(val.at(i));
-		}
-		return activ_derivative;
-		break;
-	}
+    std::vector<double> activationDerivative(val.size());
 
-	case activate_fn::relu:
-	{
-		for(int i = 0; i < val.size(); ++i)
-		{
-			activ_derivative[i] = acitvation_fn::relu_derivative(val.at(i));
-		}
-		return activ_derivative;
-		break;
-	}
+    switch (activationFunction_) {
+    case activate_fn::sigmoid:
+        for (int i = 0; i < val.size(); ++i) {
+            activationDerivative[i] = activation_fn::sigmoidDerivative(val[i]);
+        }
+        break;
 
-	case activate_fn::tanh:
-	{
-		for(int i = 0; i < val.size(); ++i)
-		{
-			activ_derivative[i] = acitvation_fn::relu_derivative(val.at(i));
-		}
-		return activ_derivative;
-		break;
-	}
+    case activate_fn::relu:
+        for (int i = 0; i < val.size(); ++i) {
+            activationDerivative[i] = activation_fn::reluDerivative(val[i]);
+        }
+        break;
 
-}
+    case activate_fn::tanh:
+        for (int i = 0; i < val.size(); ++i) {
+            activationDerivative[i] = activation_fn::tanhDerivative(val[i]);
+        }
+        break;
+    }
 
+    return activationDerivative;
 }
 
 
 
+// ����� ���������� �������� ����� ���� � ��������� ����
+void Layer::saveWeightsToFile(const std::string& filename) const
+{
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        for (const auto& weights : weights_)
+        {
+            for (double weight : weights)
+            {
+                file << weight << " ";
+            }
+            file << std::endl;
+        }
+        file.close();
+    }
+    else
+    {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+    }
+}
 
+// ����� �������� �������� ����� ���� �� �����
+void Layer::loadWeightsFromFile(const std::string& filename)
+{
+    std::ifstream file(filename);
+    if (file.is_open())
+    {
+        std::string line;
+        int row = 0;
+        while (std::getline(file, line))
+        {
+            std::istringstream iss(line);
+            std::string weight_str;
+            int col = 0;
+            while (iss >> weight_str)
+            {
+                double weight = std::stod(weight_str);
+                weights_[row][col] = weight;
+                col++;
+            }
+            row++;
+        }
+        file.close();
+    }
+    else
+    {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+    }
+}

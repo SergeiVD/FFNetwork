@@ -1,46 +1,25 @@
 #ifndef NEURALNETWORK_H
 #define NEURALNETWORK_H
 
-#include <iostream>
-#include <vector>
 #include "layer.h"
+#include <vector>
 
-class NeuralNetwork
-{
+class NeuralNetwork {
 public:
-    NeuralNetwork(std::vector<int> layer_sizes, std::vector<activate_fn> functions);
+    NeuralNetwork(const std::vector<int>& layerSizes, const std::vector<activate_fn>& activationFunctions);
+    std::vector<double> feedForward(const std::vector<double>& input);
+    void setWeights(const int& layerNum, const int& neuronNum, const int& weightNum, const double& weight);
+    void setBiases(const int& layerNum, const int& neuronNum, const double& bias);
+    const std::vector<std::vector<std::vector<double>>>& getWeights() const { return layers_; }
+    const std::vector<std::vector<double>>& getBiases() const { return biases_; }
 
-    /* * functions feed forward*/
-    std::vector<double> feed_forward(double* input);
-    std::vector<double> feed_forward(const std::vector<double>& input);
-
-    /* * setter for weights*/
-	void set_weights(const int& num_layer, const int& num_neuron, const int& num_weight, const double& weight);
-
-    /* * setter for biases*/
-	void set_biases(const int& num_layer, const int& num_neuron, const double& bias);
-
-	/* * getter for neuron weights */
-	std::vector<std::vector<std::vector<double>>> get_weights();
-
-	/* * getter for neuron weights */
-	std::vector<std::vector<double>> get_biases();
-
-	/* * getter for neuron net layers */
-	std::vector<Layer> get_layers() {return layers_;}
-
-	/* * getter for output layer */
-	std::vector<double> get_output_layers(const int& num_layer){return output_layers_.at(num_layer);}
-	
-	std::vector<double> layer_derivative(const int& num_layer);
+    void NeuralNetwork::saveToFile(const std::string& filename) const;
+    void NeuralNetwork::loadFromFile(const std::string& filename);
 
 private:
-    std::vector<int> layer_sizes_;
-    std::vector<activate_fn> functions_;
     std::vector<Layer> layers_;
-
-	std::vector<std::vector<double>> output_layers_;
+    std::vector<std::vector<double>> biases_;
+    std::vector<std::vector<double>> outputLayers_;
 };
-
 
 #endif /* NEURALNETWORK_H */
