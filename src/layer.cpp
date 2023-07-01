@@ -1,44 +1,73 @@
 #include "../include/layer.h"
 #include "../include/activation_fn.h"
 
+#include <bits/c++config.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <cmath>
 #include <random>
+#include <stdexcept>
 
-Layer::Layer(int inputSize, int outputSize, activate_fn activationFunction)
-    : inputSize_(inputSize), outputSize_(outputSize), activationFunction_(activationFunction)
+Layer::Layer(std::size_t inputSize, std::size_t outputSize, activate_fn activationFunction)
+    :
+	num_input_(inputSize),
+	num_out_(outputSize),
+	input_(inputSize),
+	output_(outputSize),
+	weights_(outputSize, inputSize),
+	biases_(outputSize),
+	activationFunction_(activationFunction)
 {
-    weights_.resize(outputSize_, std::vector<double>(inputSize_));
-    biases_.resize(outputSize_);
-
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(-1.0, 1.0);
 
-    for (int i = 0; i < outputSize_; i++) {
-        for (int j = 0; j < inputSize_; j++) {
+    for (int i = 0; i < num_out_; i++)
+	{
+        for (int j = 0; j < num_input_; j++)
+		{
             weights_[i][j] = dis(gen); // Initialize weights with random values between -1 and 1
         }
     }
 
-    for (int i = 0; i < outputSize_; i++) {
+    for (int i = 0; i < num_out_; i++)
+	{
         biases_[i] = dis(gen); // Initialize biases with random values between -1 and 1
     }
+	
 }
 
 Layer::Layer(const Layer& layer)
-    : inputSize_(layer.inputSize_), outputSize_(layer.outputSize_), weights_(layer.weights_), biases_(layer.biases_), activationFunction_(layer.activationFunction_)
+    :
+	num_input_(layer.num_input_),
+	num_out_(layer.num_out_),
+	input_(layer.input_),
+	output_(layer.output_),
+	weights_(layer.weights_),
+	biases_(layer.biases_),
+	activationFunction_(layer.activationFunction_)
 {
 }
 
 Layer::Layer(Layer&& layer) noexcept
-    : inputSize_(layer.inputSize_), outputSize_(layer.outputSize_), weights_(std::move(layer.weights_)), biases_(std::move(layer.biases_)), activationFunction_(std::move(layer.activationFunction_))
+    :
+	num_input_(layer.num_input_),
+	num_out_(layer.num_out_),
+	input_(std::move(layer.input_)),
+	output_(std::move(layer.output_)),
+	weights_(std::move(layer.weights_)),
+	biases_(std::move(layer.biases_)),
+	activationFunction_(std::move(layer.activationFunction_))
 {
 }
 
 Layer& Layer::operator=(const Layer& layer)
 {
-    inputSize_ = layer.inputSize_;
-    outputSize_ = layer.outputSize_;
+    num_input_ = layer.num_input_;
+    num_out_ = layer.num_out_;
+	input_ = layer.input_;
+	output_ = layer.output_;
     weights_ = layer.weights_;
     biases_ = layer.biases_;
     activationFunction_ = layer.activationFunction_;
@@ -48,8 +77,10 @@ Layer& Layer::operator=(const Layer& layer)
 
 Layer& Layer::operator=(Layer&& layer) noexcept
 {
-    inputSize_ = std::move(layer.inputSize_);
-    outputSize_ = std::move(layer.outputSize_);
+    num_input_ = std::move(layer.num_input_);
+    num_out_ = std::move(layer.num_out_);
+	input_ = std::move(layer.input_);
+	output_ = std::move(layer.output_);
     weights_ = std::move(layer.weights_);
     biases_ = std::move(layer.biases_);
     activationFunction_ = std::move(layer.activationFunction_);
@@ -57,61 +88,73 @@ Layer& Layer::operator=(Layer&& layer) noexcept
     return *this;
 }
 
-std::vector<double> Layer::activate(const std::vector<double>& input)
+Layer::~Layer()
 {
-    std::vector<double> output(outputSize_);
+	
+}
 
-    for (int j = 0; j < outputSize_; j++) {
+const mlm::vecd& Layer::activate(const mlm::vecd& input)
+{
+    input_ = input;
+
+    for (int j = 0; j < num_out_; j++)
+	{
         double weightedSum = 0.0;
-        for (int i = 0; i < inputSize_; i++) {
-            weightedSum += input[i] * weights_[j][i];
+        for (int i = 0; i < num_input_; i++)
+		{
+            weightedSum += input[i] * weights_(j,i);
         }
-
-        switch (activationFunction_) {
+		
+        switch (activationFunction_)
+		{
         case activate_fn::sigmoid:
-            output[j] = activation_fn::sigmoid(weightedSum + biases_[j]);
+            output_[j] = activation_fn::sigmoid(weightedSum + biases_[j]);
             break;
         case activate_fn::relu:
-            output[j] = activation_fn::relu(weightedSum + biases_[j]);
+            output_[j] = activation_fn::relu(weightedSum + biases_[j]);
             break;
         case activate_fn::tanh:
-            output[j] = activation_fn::tanh(weightedSum + biases_[j]);
+            output_[j] = activation_fn::tanh(weightedSum + biases_[j]);
             break;
         }
     }
-
-    return output;
+	
+    return output_;
 }
 
-void Layer::setWeights(const int& neuronNum, const int& weightNum, const double& weight)
+void Layer::update_weights(const int& neuronNum, const int& weightNum, const double& weight_gradient)
 {
-    weights_[neuronNum][weightNum] = weight;
+    weights_(neuronNum,weightNum) += weight_gradient;
 }
 
-void Layer::setBias(const int& neuronNum, const double& bias)
+void Layer::update_bias(const int& neuronNum, const double& bias_gradient)
 {
-    biases_[neuronNum] = bias;
+    biases_[neuronNum] += bias_gradient;
 }
 
-std::vector<double> Layer::deriveActivation(const std::vector<double>& val)
+mlm::vecd Layer::deriveActivation(const mlm::vecd& val)
 {
-    std::vector<double> activationDerivative(val.size());
+	mlm::vecd activationDerivative(val.size());
 
-    switch (activationFunction_) {
+    switch (activationFunction_)
+	{
     case activate_fn::sigmoid:
-        for (int i = 0; i < val.size(); ++i) {
+        for (int i = 0; i < val.size(); ++i)
+		{
             activationDerivative[i] = activation_fn::sigmoidDerivative(val[i]);
         }
         break;
 
     case activate_fn::relu:
-        for (int i = 0; i < val.size(); ++i) {
+        for (int i = 0; i < val.size(); ++i)
+		{
             activationDerivative[i] = activation_fn::reluDerivative(val[i]);
         }
         break;
 
     case activate_fn::tanh:
-        for (int i = 0; i < val.size(); ++i) {
+        for (int i = 0; i < val.size(); ++i)
+		{
             activationDerivative[i] = activation_fn::tanhDerivative(val[i]);
         }
         break;
@@ -121,19 +164,68 @@ std::vector<double> Layer::deriveActivation(const std::vector<double>& val)
 }
 
 
+const double Layer::derive_activation(const std::size_t& num_output)const
+{
+	if(num_output >= output_.size())throw std::invalid_argument("error! derive_activation num_output biggest then output size");
+    switch (activationFunction_)
+	{
+    case activate_fn::sigmoid:
+        return activation_fn::sigmoidDerivative(output_[num_output]);
+        break;
 
-// Метод сохранения значения весов слоя в отдельный файл
-void Layer::saveWeightsToFile(const std::string& filename) const
+    case activate_fn::relu:
+		return activation_fn::reluDerivative(output_[num_output]);
+        break;
+
+    case activate_fn::tanh:
+		return activation_fn::tanhDerivative(output_[num_output]);
+        break;
+    }
+	
+}
+
+const mlm::vecd Layer::derive_activation()const
+{
+	mlm::vecd activationDerivative(output_.size());
+    switch (activationFunction_)
+	{
+    case activate_fn::sigmoid:
+        for (int i = 0; i < output_.size(); ++i)
+		{
+            activationDerivative[i] = activation_fn::sigmoidDerivative(output_[i]);
+        }
+        break;
+
+    case activate_fn::relu:
+        for (int i = 0; i < output_.size(); ++i)
+		{
+            activationDerivative[i] = activation_fn::reluDerivative(output_[i]);
+        }
+        break;
+
+    case activate_fn::tanh:
+        for (int i = 0; i < output_.size(); ++i)
+		{
+            activationDerivative[i] = activation_fn::tanhDerivative(output_[i]);
+        }
+        break;
+    }
+	return activationDerivative;
+}
+
+
+void Layer::save_weights_to_file(const std::string& filename) const
 {
     std::ofstream file(filename);
     if (file.is_open())
     {
-        for (const auto& weights : weights_)
+        for(size_t i = 0; i < weights_.rows(); ++i)
         {
-            for (double weight : weights)
-            {
-                file << weight << " ";
-            }
+			for (size_t j = 0; j < weights_.cols(); ++j)
+			{
+				file << weights_(i,j) << " ";
+			}
+
             file << std::endl;
         }
         file.close();
@@ -144,8 +236,8 @@ void Layer::saveWeightsToFile(const std::string& filename) const
     }
 }
 
-// Метод загрузки значения весов слоя из файла
-void Layer::loadWeightsFromFile(const std::string& filename)
+
+void Layer::load_weights_from_file(const std::string& filename)
 {
     std::ifstream file(filename);
     if (file.is_open())
@@ -160,7 +252,7 @@ void Layer::loadWeightsFromFile(const std::string& filename)
             while (iss >> weight_str)
             {
                 double weight = std::stod(weight_str);
-                weights_[row][col] = weight;
+                weights_(row,col) = weight;
                 col++;
             }
             row++;

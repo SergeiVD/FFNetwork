@@ -2,7 +2,8 @@
 
 #include <cmath>
 
-namespace activation_fn {
+namespace activation_fn
+{
     double sigmoid(double x)
     {
         return 1.0 / (1.0 + std::exp(-x));
@@ -10,7 +11,7 @@ namespace activation_fn {
 
     double relu(double x)
     {
-        return std::fmax(0.0, x);
+        return (x > 0.0) ? x : 0.0;
     }
 
     double tanh(double x)
@@ -25,12 +26,14 @@ namespace activation_fn {
 
     double reluDerivative(double val)
     {
-        if (val > 0.0) {
-            return 1.0;
-        }
-        else {
-            return 0.0;
-        }
+		if(val < 0)
+		{
+			return 0;
+		}
+		else
+		{
+			return 1;
+		}
     }
 
     double tanhDerivative(double val)

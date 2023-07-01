@@ -1,39 +1,36 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(AI_test_2)
+project(FFNetwork)
 
-include(CheckCXXCompilerFlag)
+# Compiler flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -std=c++17 -O3 -Ofast -march=native")
 
-function(enable_cxx_compiler_flag_if_supported flag)
-  string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
-  if(flag_already_set EQUAL -1)
-	check_cxx_compiler_flag("${flag}" flag_supported)
-	if(flag_supported)
-	  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
-	endif()
-	unset(flag_supported CACHE)
-  endif()
-endfunction()
+# Build types
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
-enable_cxx_compiler_flag_if_supported("-Wall")
-enable_cxx_compiler_flag_if_supported("-Wextra")
-enable_cxx_compiler_flag_if_supported("-pedantic")
-enable_cxx_compiler_flag_if_supported("-std=c++17")
-enable_cxx_compiler_flag_if_supported("-g3")
+# Debug build flags
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
 
+# Include directory for nlohmann json library
+set(JSON_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/nlohmann)
 
+# Add mnist dataset module
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/mnist)
 
-# # Set path to Eigen library
-set(EIGEN_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/lib/eigen)
+# Source files
+file(GLOB SOURCES include/*.h src/*.cpp mlm/*.h main.cpp)
 
-include_directories(${EIGEN_INCLUDE_DIRS})
-
-add_library(eigen INTERFACE)
-
-target_include_directories(eigen INTERFACE ${EIGEN_INCLUDE_DIRS})
-
-file(GLOB SOURCES include/*.h src/*.cpp main.cpp)
-
+# Build executable
 add_executable(${PROJECT_NAME} ${SOURCES})
+
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE ${JSON_INCLUDE_DIR})
+
+# Link libraries
+find_package(OpenCV REQUIRED)
+target_link_libraries(${PROJECT_NAME} mnist_reader ${OpenCV_LIBS})
+
+
 
 

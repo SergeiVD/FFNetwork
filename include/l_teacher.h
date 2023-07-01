@@ -2,11 +2,18 @@
 #define L_TEACHER_H
 
 #include "neuralnetwork.h"
+
 #include <vector>
 
-class L_Teacher {
+class L_Teacher
+{
 public:
-    L_Teacher(NeuralNetwork& network, const std::vector<std::vector<double>>& trainingData, const std::vector<std::vector<double>>& targetData, double learningRate = 0.1, int numEpochs = 1000);
+    L_Teacher(NeuralNetwork& network,
+			  const std::vector<std::vector<double>>& trainingData,
+			  const std::vector<std::vector<double>>& targetData,
+			  double learningRate = 0.1,
+			  int numEpochs = 1000);
+	
     void train();
 
 private:
@@ -16,8 +23,9 @@ private:
     double learningRate_;
     int numEpochs_;
 
-    std::vector<std::vector<std::vector<double>>> backpropagate(const std::vector<double>& error);
-    void updateWeights(const std::vector<std::vector<std::vector<double>>>& gradients);
+	mlm::vec<mlm::matrixd> backpropagate(const mlm::vecd& error);
+    void updateWeights(const mlm::vec<mlm::matrixd>& gradients);
+
 };
 
 #endif /* L_TEACHER_H */

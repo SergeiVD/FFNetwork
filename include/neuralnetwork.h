@@ -2,24 +2,34 @@
 #define NEURALNETWORK_H
 
 #include "layer.h"
+#include <bits/c++config.h>
 #include <vector>
 
-class NeuralNetwork {
+class NeuralNetwork
+{
 public:
+	NeuralNetwork()=default;
     NeuralNetwork(const std::vector<int>& layerSizes, const std::vector<activate_fn>& activationFunctions);
-    std::vector<double> feedForward(const std::vector<double>& input);
-    void setWeights(const int& layerNum, const int& neuronNum, const int& weightNum, const double& weight);
-    void setBiases(const int& layerNum, const int& neuronNum, const double& bias);
-    const std::vector<std::vector<std::vector<double>>>& getWeights() const { return layers_; }
-    const std::vector<std::vector<double>>& getBiases() const { return biases_; }
+	~NeuralNetwork()=default;
+	
+    mlm::vecd feedForward(const std::vector<double>& input);
 
-    void NeuralNetwork::saveToFile(const std::string& filename) const;
-    void NeuralNetwork::loadFromFile(const std::string& filename);
+	mlm::vec<Layer> getLayers()const{return layers_;}
+	Layer& getLayer(const int& num_layer);
+	const std::size_t get_num_layers()const {return layer_sizes_.size() - 1;} // Колличество слоев без учета входного слоя
 
+    void saveToFile(const std::string& filename);
+    void loadFromFile(const std::string& filename);
+	
 private:
-    std::vector<Layer> layers_;
-    std::vector<std::vector<double>> biases_;
-    std::vector<std::vector<double>> outputLayers_;
+	mlm::veci layer_sizes_;
+    mlm::vec<Layer> layers_;
 };
 
 #endif /* NEURALNETWORK_H */
+
+
+
+	// void setWeights(const int& layerNum, const int& neuronNum, const int& weightNum, const double& weight);
+    // void setBiases(const int& layerNum, const int& neuronNum, const double& bias);
+
